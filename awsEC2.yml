@@ -1,0 +1,29 @@
+---
+- name: provision stack
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  # Launch the cloudformation-example.json template.  Register the output.
+
+  tasks:
+  - name: launch ansible cloudformation example
+    cloudformation: >
+     stack_name: "$stack_name"
+       state: "present"
+       region: "$region"
+       template: "$template_path"
+       template_parameters:
+        KeyName: "$keyname"
+        InstanceType: "$InstanceType"
+        ClusterSize: "$ClusterSize"
+        ImageId: "$ImageId"
+        SecurityGroupID: "$SecurityGroupID"
+        VpcId: "$VpcId"
+        SubnetId1: "$SubnetId1"
+        SubnetId2: "$SubnetId2"
+        EN: "$EN"
+        SN: "$SN"
+     register: stack
+  - name: show stack outputs
+    debug: msg="My stack outputs are {{stack.stack_outputs}}"

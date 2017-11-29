@@ -1,0 +1,49 @@
+[JenkinsServer]
+10.2.40.193
+
+[all:vars]
+############ Temp Location #############
+temp_local = tmp
+
+############ Build Artifact Section #####
+artifact_name = platform-profiling-service-deploy
+artifactory_usr = repluser
+artifactory_encrypted_pass = AP49A5SMDpZuQb7e9g7Tn5c45fbUfJkZMzmUSM
+url = http://artifact.corp.continuum.net:8081/artifactory/int-dev_platform-profiling-service
+
+############ CFN Section #############
+stackname = VikTestStack
+Cluster_Name = VikTestCluster
+Instance_Type = t2.medium
+Key_Name = AWSAutomation-Int-APAC
+Vpc_Id = 'vpc-d285ccbb'
+Subnet_Id1 = 'subnet-6ea7f207'
+Subnet_Id2 = 'subnet-212ea26c'
+Template_path = "./viktest.template"
+SecurityGroup_ID = 'sg-f4b5759c'
+Image_Id = 'ami-7e651c11'
+region = 'ap-south-1'
+EN = Integration
+SN = PlatformProfilingService
+
+
+############ SSH Connection #############
+connection_type = ssh
+ssh_user_name = ubuntu
+ssh_private_key_file = /home/jenkins/Download/AWSAutomation-Int-APAC.pem
+dest_location = /home/ubuntu
+log_level = INFO
+service_port = 80
+service_uri = profiling
+service_version = v1
+upstartscript = profiling-service  
+
+############Cassandra and Kafka Clusters##########
+cassandra_hosts = '172.28.48.6:9042,172.28.48.60:9042,172.28.49.69:9042,172.28.49.233:9042'
+kafka_host = '172.28.48.173:9092,172.28.48.78:9092,172.28.49.107:9092,172.28.49.135:9092'
+agent_alb  : 'https://integration.agent.exec.itsupport247.net'
+asset_elb  : 'http://internal-continuum-asset-service-elb-int-1972580147.ap-south-1.elb.amazonaws.com'
+
+
+############ ELB Section #############
+ELB_Instance_Name = Continuum-Profiling-Service-Int

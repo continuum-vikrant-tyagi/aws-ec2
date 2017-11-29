@@ -1,0 +1,121 @@
+---
+- name: provision stack
+  hosts:  JenkinsServer
+  connection: local
+  gather_facts: false
+ 
+  tasks: 
+
+   - name: Launch Instance for Stack Name "{{stackname}}" using Cludformation  
+     cloudformation:
+       stack_name: "{{stackname}}{{buildno}}"
+       state: "present"
+       region: "{{region}}"
+       template: "{{Template_path}}"
+       template_parameters:
+        KeyName: "{{Key_Name}}"
+        InstanceType: "{{Instance_Type}}"
+        ImageId: "{{ Image_Id }}"
+        SecurityGroupID: "{{ SecurityGroup_ID }}"
+        VpcId: "{{Vpc_Id}}"
+        SubnetId1: "{{Subnet_Id1}}"
+        SubnetId2: "{{Subnet_Id2}}"
+        EN: "{{EN}}"
+        SN: "{{SN}}"
+     register: stack
+
+   - name: Instance IP address for "{{stackname}}"
+     debug: 
+       msg: "IP of the cluster {{ stack.stack_outputs }}"
+
+   - name: Add the Instance to text file
+     local_action: raw echo "{{ item.physical_resource_id }}" >> "{{ temp_local }}/{{stackname}}.txt"
+     with_items: "{{ stack.stack_resources }}"
+     when: item.resource_type == 'AWS::EC2::Instance'
+     
+   - name: Change text File Mode to 0775
+     local_action: raw chmod 0775 "{{ temp_local }}/{{stackname}}.txt"
+
+   - name: Add Instance IP Address to temporary inventory group
+     add_host:
+       name: "Add Dynamic AWS hosts for Instance {{ item.key }}"
+       groups: dynamic_hosts
+       ansible_host: "{{ item.value }}"
+     with_dict: 
+         "{{ stack.stack_outputs }}"
+    
+   - name: Pause playbook for VMS to start
+     pause:
+       minutes: 5
+
+
+- hosts: JenkinsServer
+  connection: local
+  gather_facts: false
+      
+  tasks:
+   - name: Fetching Existing Instances for ELB "{{ ELB_Instance_Name }}"
+     shell: aws elb describe-load-balancers --load-balancer-name "{{ ELB_Instance_Name }}" | grep INSTANCES| sed 's/INSTANCES\t//g'
+     register: aws_output
+     when: lb_type is undefined
+     
+   - name: Fetch Existing Stackname from ELB "{{ ELB_Instance_Name }}"   
+     shell: aws elb describe-tags --load-balancer-name "{{ ELB_Instance_Name }}" | grep Stackname |sed 's/TAGS\tStackname\t//g'
+     register: existing_stackname
+     when: lb_type is undefined
+     
+   - name: Reading Instance Ids from File
+     command: cat "{{ temp_local }}/{{stackname}}.txt"
+     register: instanceIds
+     
+   - name: Registering Instances for ELB "{{ instanceIds.stdout }}"
+     command: "aws elb register-instances-with-load-balancer --load-balancer-name {{ ELB_Instance_Name }} --instances {{ item }}"
+     with_items: "{{ instanceIds.stdout_lines | unique }}"
+     when: lb_type is undefined
+     
+   - name: Registering Instances with target groups of ALB "{{ item[1] }}"
+     command: "aws elbv2 register-targets --target-group-arn {{ item[1] }} --targets Id={{ item[0]  }}"
+     with_nested:
+       - "{{ instanceIds.stdout_lines | unique }}"
+       - "{{ alb_targetgroup }}"
+     when: lb_type is defined and lb_type == "ALB"
+
+   - name: Remove Tag Name from the  ELB "{{stackname}}{{buildno}}"
+     command: "aws elb remove-tags --load-balancer-name {{ ELB_Instance_Name }} --tags Stackname"
+     when: lb_type is undefined
+
+   - name: Tagging the ELB with "{{stackname}}{{buildno}}"
+     command: "aws elb add-tags --load-balancer-name {{ ELB_Instance_Name }} --tags Key=Stackname,Value={{stackname}}{{buildno}}"
+     when: lb_type is undefined
+     
+   - name: Remove Tag Name from the  ALB "{{stackname}}{{buildno}}"
+     command: "aws elbv2 remove-tags --resource-arns {{ item }} --tag-keys Stackname"
+     with_items: "{{ ALB_Instance_Name }}"
+     when: lb_type is defined and lb_type == "ALB"
+     
+   - name: Tagging the ALB with "{{stackname}}{{buildno}}"
+     command: "aws elbv2 add-tags --resource-arns {{ item }} --tags Key=Stackname,Value={{stackname}}{{buildno}}"
+     with_items: "{{ ALB_Instance_Name }}"
+     when: lb_type is defined and lb_type == "ALB"
+     
+   - name: Deregistering Instances {{ aws_output.stdout }}
+     command: "aws elb deregister-instances-from-load-balancer --load-balancer-name {{ ELB_Instance_Name }} --instances {{ item }}"
+     with_items: "{{ aws_output.stdout_lines | difference(instanceIds.stdout_lines) }}"
+     when: lb_type is undefined
+
+#   - name: Terminate Instances {{ aws_output.stdout }}
+#     command: "aws ec2 terminate-instances --instance-ids {{ item }}"
+#     with_items: "{{ aws_output.stdout_lines | difference(instanceIds.stdout_lines) }}"
+ 
+   - debug:
+       msg: "Deleting the Stackname {{ existing_stackname }}"
+     when: lb_type is undefined
+       
+   - name: Terminate Stackname "{{ existing_stackname.stdout }}"
+     command: "aws cloudformation delete-stack --stack-name {{  existing_stackname.stdout }}"
+     when:
+        - lb_type is undefined
+        - existing_stackname.stdout != ""
+        
+     
+ 

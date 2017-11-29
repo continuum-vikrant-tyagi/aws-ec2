@@ -1,0 +1,182 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "AWS CloudFormation Sample",
+
+  "Parameters" : {
+
+    "KeyName": {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription" : "must be the name of an existing EC2 KeyPair."
+    },
+
+    "InstanceType" : {
+      "Description" : "EC2 instance type",
+      "Type" : "String",
+      "Default" : "m3.large",
+      "AllowedValues" : [ "t1.micro", "t2.nano", "t2.micro", "t2.small", "t2.medium", "t2.large", "m1.small", "m1.medium", "m1.large", "m1.xlarge", "m2.xlarge", "m2.2xlarge", "m2.4xlarge", "m3.medium", "m3.large", "m3.xlarge", "m3.2xlarge", "m4.large", "m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m4.10xlarge", "c1.medium", "c1.xlarge", "c3.large", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "c4.large", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c4.8xlarge", "g2.2xlarge", "g2.8xlarge", "r3.large", "r3.xlarge", "r3.2xlarge", "r3.4xlarge", "r3.8xlarge", "i2.xlarge", "i2.2xlarge", "i2.4xlarge", "i2.8xlarge", "d2.xlarge", "d2.2xlarge", "d2.4xlarge", "d2.8xlarge", "hi1.4xlarge", "hs1.8xlarge", "cr1.8xlarge", "cc2.8xlarge", "cg1.4xlarge"]
+,
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+	
+	 "SecurityGroupID" : {
+      "Description" : "ID of the existing SecurityGroup",
+      "Type" : "List<AWS::EC2::SecurityGroup::Id>",
+      "ConstraintDescription" : "must be a valid SecurityGroup ID."
+    },
+	"ClusterName" : {
+      "Default" : "Cassandra Cluster",
+      "Description" : "The name of this Cassandra cluster",
+      "Type" : "String"
+    },
+	
+	"ImageId" : {
+      "Default" : "ID of the Asset Microservice Cluster",
+      "Description" : "AMI id of the Asset Microservice cluster",
+      "Type" : "String"
+    },
+	
+    "VpcId" : {
+      "Type" : "AWS::EC2::VPC::Id",
+      "Description" : "VpcId of your existing Virtual Private Cloud (VPC)",
+      "ConstraintDescription" : "must be the VPC Id of an existing Virtual Private Cloud."
+    },
+
+    "SubnetId1" : {
+      "Type" : "AWS::EC2::Subnet::Id",
+      "Description" : "SubnetId1 of an existing subnet (for the primary network) in your Virtual Private Cloud (VPC)",
+      "ConstraintDescription" : "must be an existing subnet in the selected Virtual Private Cloud."
+    },
+	
+	"SubnetId2" : {
+      "Type" : "AWS::EC2::Subnet::Id",
+      "Description" : "SubnetId2 of an existing subnet (for the primary network) in your Virtual Private Cloud (VPC)",
+      "ConstraintDescription" : "must be an existing subnet in the selected Virtual Private Cloud."
+    },
+    "EN" : {
+       "Description" : "To Give the details of environment name ec2 Tags",
+      "ConstraintDescription" : "Tags for projects environment name",
+      "Type" : "String"
+    },
+
+    "SN" : {
+      "Description" : "To Give the details of service name ec2 Tags",
+      "ConstraintDescription" : "Tags for projects service name",
+      "Type" : "String"
+    }
+  },
+
+ "Resources" : {
+    "Eni1forPlatformProfilingS1" : {
+      "Type" : "AWS::EC2::NetworkInterface",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "SubnetId1" },
+        "Description" :"Interface for control traffic such as SSH",
+        "GroupSet" : { "Ref" : "SecurityGroupID" },
+        "SourceDestCheck" : "true",
+        "Tags" : [ {"Key" : "Network", "Value" : "IngEni1forPlatformProfilingS1"}]
+      }
+	  },
+	  
+ "PlatformProfilingS1": {
+      "Type": "AWS::EC2::Instance",
+    "DependsOn":[
+            "Eni1forPlatformProfilingS1"
+         ],
+	
+	"Properties": {
+        
+	"ImageId" : { "Ref" : "ImageId" },
+        
+	"KeyName" : { "Ref" : "KeyName" },
+  
+	"InstanceType": { "Ref" : "InstanceType" },      
+	"NetworkInterfaces" : [ { "NetworkInterfaceId" : {"Ref" : "Eni1forPlatformProfilingS1"}, "DeviceIndex" : "0" }],
+		"BlockDeviceMappings" : [
+            {
+                "DeviceName" : "/dev/sda1",
+                "Ebs" : { "VolumeSize" : "60", "VolumeType": "gp2" } 
+            }
+         ],          
+	"Tags" : [ 
+	{"Key" : "Name", "Value" : "PlatformProfilingS1"},
+	{"Key" : "Service-Name", "Value" : { "Ref" : "SN"}},
+    {"Key": "Environment-Name", "Value": { "Ref" : "EN"}}
+	],
+	"UserData":{
+		"Fn::Base64":{
+			"Fn::Join":[
+					"",
+					[
+					"#!/bin/bash -v\n",
+					"echo \"127.0.0.1 $(hostname)\" >> /etc/hosts\n"
+					]
+				]
+			}
+		}
+  }
+   },	
+
+    "Eni1forPlatformProfilingS2" : {
+      "Type" : "AWS::EC2::NetworkInterface",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "SubnetId2" },
+        "Description" :"Interface for control traffic such as SSH",
+        "GroupSet" : { "Ref" : "SecurityGroupID" },
+        "SourceDestCheck" : "true",
+        "Tags" : [ {"Key" : "Network", "Value" : "IngEni1forPlatformProfilingS2"}]
+      }
+    },
+  
+ "PlatformProfilingS2": {
+      
+	"Type": "AWS::EC2::Instance",
+	"DependsOn":[
+            "Eni1forPlatformProfilingS2","PlatformProfilingS1"
+         ],      
+	"Properties": {
+        
+	"ImageId" : { "Ref" : "ImageId" },
+        
+	"KeyName" : { "Ref" : "KeyName" },
+  
+	"InstanceType": { "Ref" : "InstanceType" },      
+	"NetworkInterfaces" : [ { "NetworkInterfaceId" : {"Ref" : "Eni1forPlatformProfilingS2"}, "DeviceIndex" : "0" }],
+	"BlockDeviceMappings" : [
+            {
+                "DeviceName" : "/dev/sda1",
+                "Ebs" : { "VolumeSize" : "60", "VolumeType": "gp2" } 
+            }
+         ],          
+	"Tags" : [ 
+	{"Key" : "Name", "Value" : "PlatformProfilingS2"},
+	{"Key" : "Service-Name", "Value" : { "Ref" : "SN"}},
+    {"Key": "Environment-Name", "Value": { "Ref" : "EN"}}
+	],
+	"UserData":{
+		"Fn::Base64":{
+			"Fn::Join":[
+					"",
+					[
+					"#!/bin/bash -v\n",
+					"echo \"127.0.0.1 $(hostname)\" >> /etc/hosts\n"
+					]
+				]
+			}
+		}
+  }
+ }
+ 
+	} ,
+  "Outputs":{  
+         "PlatformProfilingS1IPAddress":{  
+         "Value" : { "Fn::GetAtt" : [ "Eni1forPlatformProfilingS1", "PrimaryPrivateIpAddress" ] },
+	 "Description" : "IP address of PlatformProfilingS1"
+       },
+         "PlatformProfilingS2IPAddress":{  
+         "Value" : { "Fn::GetAtt" : [ "Eni1forPlatformProfilingS2", "PrimaryPrivateIpAddress" ] },
+	 "Description" : "IP address of PlatformProfilingS2"
+       }
+}
+}
