@@ -1,0 +1,113 @@
+{
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Spot fleet for transcoding jobs",
+
+        "Parameters": {
+                "KeyName": {
+                        "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+                        "Type": "AWS::EC2::KeyPair::KeyName",
+                        "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+                },
+                "InstanceTypeLaunch": {
+                        "Description": "EC2 instance type",
+                        "Type": "String",
+                        "ConstraintDescription": "must be a valid EC2 instance type."
+                },
+                "SecurityGroups": {
+                        "Default": "sg-5cd98a29",
+						"Description": "ID of the SecurityGroup",
+                        "Type": "AWS::EC2::SecurityGroup::Id",
+                        "ConstraintDescription": "must be a valid SecurityGroup ID."
+                },
+                "AllocationStrategy": {
+                        "Default": "diversified",
+                        "Description": "Allocation strategy for the spot fleet",
+                        "Type": "String"
+                },
+                "TargetCapacity": {
+                        "Default": "1",
+                        "Description": "target capacity for spot fleet",
+                        "Type": "String"
+                },
+                "SpotPrice": {
+                        "Default": "1",
+						"Description": "Global spot price",
+                        "Type": "String"
+                },
+                "ImageId": {
+                        "Default": "ami-0d4f8c70",
+                        "Description": "AMI id of the Asset Microservice cluster",
+                        "Type": "String"
+                },
+
+                "VpcId": {
+                        "Type": "AWS::EC2::VPC::Id",
+                        "Description": "VpcId of your existing Virtual Private Cloud (VPC)",
+                        "ConstraintDescription": "must be the VPC Id of an existing Virtual Private Cloud."
+                },
+                "Subnets": {
+                        "Default": "subnet-d0b854ec, subnet-0bf74f07, subnet-3eda4a5b",
+						"Type": "String",
+                        "Description": "SubnetId1 of an existing subnet (for the primary network) in your Virtual Private Cloud (VPC)",
+                        "ConstraintDescription": "must be an existing subnet in the selected Virtual Private Cloud."
+                },
+                "NameTagValue": {
+                        "Type": "String",
+                        "Description": "Name Tag Value"
+                }
+        },
+  "Resources": {
+    "SpotFleet" : {
+      "Type" : "AWS::EC2::SpotFleet",
+      "Properties" : {
+        "SpotFleetRequestConfigData" : {
+                                "IamFleetRole": "arn:aws:iam::649434256149:role/aws-ec2-spot-fleet-tagging-role",
+                                "AllocationStrategy": {"Ref": "AllocationStrategy"},
+                                "TargetCapacity": {"Ref": "TargetCapacity"},
+                                "TerminateInstancesWithExpiration": true,
+                                "SpotPrice": {"Ref": "SpotPrice"},
+                                "LaunchSpecifications": [
+													{
+															"ImageId": {"Ref": "ImageId"},
+															"InstanceType": {"Ref": "InstanceTypeLaunch"},
+															"SubnetId": {"Ref": "Subnets"},
+															"KeyName": {"Ref": "KeyName"},
+															"EbsOptimized": true,
+															"BlockDeviceMappings": [
+																{
+																	"DeviceName": "/dev/xvda",
+                                                                        "Ebs": {
+                                                                                "DeleteOnTermination": true,
+                                                                                "VolumeType": "gp2",
+                                                                                "VolumeSize": 20
+
+																			}
+																}
+																],
+															"SecurityGroups": [
+                                                                {
+                                                                  "GroupId": {"Ref": "SecurityGroups"}
+                                                                }
+																],
+															"TagSpecifications": [
+																		{
+                                                                        "ResourceType": "instance",
+                                                                        "Tags": [{"Key": "Name", "Value": {"Ref": "NameTagValue"}}]
+																		}]
+													}
+												],
+                                          "Type": "maintain",
+                                          "ReplaceUnhealthyInstances": true
+                                        }
+         }
+      }
+    },
+        "Outputs" : {
+               "spotFleetRequestId": {
+           "Description": "The Spot fleet Request Id",
+           "Value": {
+               "Ref": "SpotFleet"
+            }
+        }
+  }
+ }
