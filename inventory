@@ -1,0 +1,20 @@
+[JenkinsServer]
+10.2.40.193
+
+[all:vars]
+
+############ CFN Section #############
+stackname = SpotTranscoder
+InstanceTypeLaunch = c4.large
+Key_Name = 'ccmt-non-prod'
+Vpc_Id = 'vpc-6bbfb112'
+Subnet_Id = 'subnet-28339b06, subnet-663be302'
+Template_path = "./spotfleet.json"
+SecurityGroup_ID = 'sg-c01ee4b3'
+Image_Id = 'ami-f07f858a'
+region = 'us-east-1'
+TargetCapacity = '1'
+SpotPrice = '2'
+NameTagValue = 'SpotFleet'
+ServiceTagValue = 'Transcoder'
+AllocationStrategy = 'diversified'

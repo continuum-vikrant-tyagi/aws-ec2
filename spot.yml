@@ -1,6 +1,6 @@
 ---
-  - name: Deploy talend package
-    hosts: "{{ hosts }}"
+  - name: Deploy Stack
+    hosts: localhost
     any_errors_fatal: true
     gather_facts: false
     tasks:
