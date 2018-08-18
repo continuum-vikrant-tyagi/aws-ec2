@@ -4,7 +4,7 @@
 [all:vars]
 
 ############ CFN Section #############
-stackname = SpotTranscoder
+stackname = SpotTranscoder123
 InstanceTypeLaunch = c4.large
 Key_Name = 'ccmt-non-prod'
 Vpc_Id = 'vpc-6bbfb112'
