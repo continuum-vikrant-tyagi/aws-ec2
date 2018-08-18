@@ -1,0 +1,82 @@
+---
+  - name: Deploy talend package
+    hosts: "{{ hosts }}"
+    any_errors_fatal: true
+    gather_facts: false
+    tasks:
+    
+
+     - name: Launch Instance for Stack Name "{{stackname}}" using Cludformation
+       cloudformation:
+         stack_name: "{{stackname}}"
+         state: "present"
+         region: "{{region}}"
+         template: "{{Template_path}}"
+         template_parameters:
+          KeyName: "{{Key_Name}}"
+          InstanceTypeLaunch: "{{InstanceTypeLaunch}}"
+          ImageId: "{{ Image_Id }}"
+          SecurityGroups: "{{ SecurityGroup_ID }}"
+          AllocationStrategy: "{{AllocationStrategy}}"
+          TargetCapacity: "{{TargetCapacity}}"
+          SpotPrice: "{{SpotPrice}}"
+          VpcId: "{{Vpc_Id}}"
+          Subnets: "{{Subnet_Id}}"
+          NameTagValue: "{{NameTagValue}}"
+          ServiceTagValue: "{{ServiceTagValue}}"          
+       register: stack
+
+     - name: Pause playbook 300 sec for VMS to start
+       pause:
+        seconds: 300
+     
+
+     #- name: Get instance id's for deployment
+       #shell: aws ec2 describe-instances --filters "Name=tag:Service,Values=Transcoder" --query 'Tags[].ResourceId' --output json | grep i- |  sed  's/"//g ; s/,//g ; s/    //g'
+       #register: instances
+
+     #- name: Instance IP address for "{{stackname}}"
+       #debug:
+         #msg: "IP of the cluster {{ instances.stdout_lines }}"
+
+     #- name: configure output file
+       #shell: |
+         #rm -rf output.txt
+         #touch output.txt
+         #chmod 777 output.txt
+
+     #- name: Get IPaddress in a file
+       #shell: "aws ec2 describe-instances --instance-id {{ item }}  --query 'Reservations[].Instances[].PrivateIpAddress' >> output.txt"
+       #with_items: "{{ instances.stdout_lines }}"
+       #register: ipaddress
+
+     #- name: read the value of the file
+       #shell: cat output.txt
+       #register: filevalue
+
+     #- name: Instance IP address for "{{item}}"
+       #debug:
+         #msg: "IP of the cluster {{item}}"
+       #with_items: "{{ filevalue.stdout_lines }}"
+
+     #- name: Add Dynamic Ip's
+       #add_host:
+         #groups: dynamic_groups
+         #hostname: "{{item}}"
+       #with_items: filevalue.stdout_lines
+   
+ 
+  #- hosts: dynamic_groups
+    #become: yes
+    #become_user: root
+    #become_method: sudo
+    #serial: 1
+
+    #vars:
+      #ansible_connection: "{{ connection_type }}"
+      #ansible_ssh_user: "{{ ssh_user_name }}"
+      #ansible_ssh_private_key_file: "{{ ssh_private_key_file }}"
+
+    #tasks:
+      #- include: CommonPlaybooks/ntp-configuration-int.yml
+        #when: cms_environment=="int"

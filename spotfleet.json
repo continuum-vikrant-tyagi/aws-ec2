@@ -14,7 +14,7 @@
                         "ConstraintDescription": "must be a valid EC2 instance type."
                 },
                 "SecurityGroups": {
-                        "Default": "sg-5cd98a29",
+                        "Default": "sg-c01ee4b3",
 						"Description": "ID of the SecurityGroup",
                         "Type": "AWS::EC2::SecurityGroup::Id",
                         "ConstraintDescription": "must be a valid SecurityGroup ID."
@@ -35,8 +35,8 @@
                         "Type": "String"
                 },
                 "ImageId": {
-                        "Default": "ami-0d4f8c70",
-                        "Description": "AMI id of the Asset Microservice cluster",
+                        "Default": "ami-f07f858a",
+                        "Description": "AMI id of the",
                         "Type": "String"
                 },
 
@@ -46,12 +46,16 @@
                         "ConstraintDescription": "must be the VPC Id of an existing Virtual Private Cloud."
                 },
                 "Subnets": {
-                        "Default": "subnet-d0b854ec, subnet-0bf74f07, subnet-3eda4a5b",
+                        "Default": "subnet-28339b06, subnet-663be302",
 						"Type": "String",
                         "Description": "SubnetId1 of an existing subnet (for the primary network) in your Virtual Private Cloud (VPC)",
                         "ConstraintDescription": "must be an existing subnet in the selected Virtual Private Cloud."
                 },
                 "NameTagValue": {
+                        "Type": "String",
+                        "Description": "Name Tag Value"
+                },
+				"ServiceTagValue": {
                         "Type": "String",
                         "Description": "Name Tag Value"
                 }
@@ -61,7 +65,7 @@
       "Type" : "AWS::EC2::SpotFleet",
       "Properties" : {
         "SpotFleetRequestConfigData" : {
-                                "IamFleetRole": "arn:aws:iam::649434256149:role/aws-ec2-spot-fleet-tagging-role",
+                                "IamFleetRole": "arn:aws:iam::131049698002:role/aws-ec2-spot-fleet-tagging-role",
                                 "AllocationStrategy": {"Ref": "AllocationStrategy"},
                                 "TargetCapacity": {"Ref": "TargetCapacity"},
                                 "TerminateInstancesWithExpiration": true,
@@ -92,7 +96,11 @@
 															"TagSpecifications": [
 																		{
                                                                         "ResourceType": "instance",
-                                                                        "Tags": [{"Key": "Name", "Value": {"Ref": "NameTagValue"}}]
+                                                                        "Tags": [
+																		
+																		{"Key": "Name", "Value": {"Ref": "NameTagValue"}},
+																		{"Key": "Service", "Value": {"Ref": "ServiceTagValue"}}
+																		]
 																		}]
 													}
 												],
